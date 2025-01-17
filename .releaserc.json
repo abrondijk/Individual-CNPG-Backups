@@ -18,7 +18,6 @@
         "successTitle": false,
         "failTitle": false,
         "labels": false,
-        "assignees": false,
         "releasedLabels": false
       }
     ]
