@@ -2,8 +2,6 @@ from datetime import datetime, timedelta
 import os
 import sys
 import psycopg2
-import gzip
-import shutil
 from sh import pg_dump
 
 # Retention rules
@@ -25,6 +23,8 @@ BACKUP_PATH = "/backup"
 # Postgres database backup exceptions
 DATABASE_EXCEPTIONS = []
 
+BACKUP_FILE_EXTENSION = ".dump"
+
 
 def print_error(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -34,7 +34,7 @@ def files_to_dates(database, files):
     dates = []
 
     date_length = len(datetime.now().strftime(DATE_FORMAT))
-    file_extension_length = len('.sql.gz')
+    file_extension_length = len(BACKUP_FILE_EXTENSION)
     prefix_length = len(f"{database}_")
 
     backup_file_length = prefix_length + date_length + file_extension_length
@@ -45,7 +45,6 @@ def files_to_dates(database, files):
         if not len(file) == backup_file_length:
             continue
 
-        # date_str = file.replace('.sql.gz', '')
         date_str = file[prefix_length:-file_extension_length]
 
         # Check if the date is valid
@@ -59,7 +58,7 @@ def files_to_dates(database, files):
 
 
 def dates_to_files(database, dates):
-    return [f"{database}_{date.strftime(DATE_FORMAT)}.sql.gz" for date in dates]
+    return [f"{database}_{date.strftime(DATE_FORMAT)}{BACKUP_FILE_EXTENSION}" for date in dates]
 
 
 def backup_retention(database):
@@ -139,19 +138,11 @@ def database_backup(database):
     os.makedirs(backup_location, exist_ok=True)
 
     # Backup the database
-    filename = f'{backup_location}/{database}_{datetime.now().strftime(DATE_FORMAT)}.sql'
+    filename = f'{backup_location}/{database}_{datetime.now().strftime(DATE_FORMAT)}{BACKUP_FILE_EXTENSION}'
     with open(filename, 'wb') as file:
         # Set the password environment variable for the pg_dump command
         os.environ["PGPASSWORD"] = POSTGRES_PASS
-        pg_dump('-h', POSTGRES_HOST, '-p', POSTGRES_PORT, '-U', POSTGRES_USER, database, _out=file)
-
-    # Compress the backup
-    with open(filename, 'rb') as file:
-        with gzip.open(f'{filename}.gz', 'wb') as gz_file:
-            shutil.copyfileobj(file, gz_file)
-
-    # Remove the uncompressed backup
-    os.remove(filename)
+        pg_dump('-h', POSTGRES_HOST, '-p', POSTGRES_PORT, '-U', POSTGRES_USER, '-Fc', database, _out=file)
 
 
 def main():
