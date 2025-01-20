@@ -79,7 +79,7 @@ def backup_retention(database):
     retained_dates = backup_dates.copy()
     discarded_dates = []
 
-    yesterday = datetime.now() - timedelta(days=1)
+    today = datetime.now()
 
     for date in backup_dates:
         # Mondays
@@ -88,8 +88,8 @@ def backup_retention(database):
         # First day of the month
         elif found_monthly < MONTHLY_RETENTION and date.day == 1:
             found_monthly += 1
-        # Days between yesterday and DAILY_RETENTION days ago
-        elif found_daily < DAILY_RETENTION and yesterday - timedelta(days=DAILY_RETENTION) <= date <= yesterday:
+        # Days between today and DAILY_RETENTION days ago
+        elif found_daily < DAILY_RETENTION and today - timedelta(days=DAILY_RETENTION) <= date <= today:
             found_daily += 1
         # If date is not to be retained
         else:
@@ -173,8 +173,8 @@ def main():
     databases = get_all_databases()
 
     for database in databases:
-        backup_retention(database)
         database_backup(database)
+        backup_retention(database)
 
 
 if __name__ == "__main__":
